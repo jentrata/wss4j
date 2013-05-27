@@ -95,6 +95,9 @@ public class EncryptionAction implements Action {
             wsEncrypt.setEphemeralKey(passwordCallback.getKey());
             wsEncrypt.setEncryptSymmKey(reqData.getEncryptSymmetricEncryptionKey());
         }
+
+        wsEncrypt.setAttachmentCallbackHandler(reqData.getAttachmentCallbackHandler());
+
         try {
             wsEncrypt.build(doc, reqData.getEncCrypto(), reqData.getSecHeader());
         } catch (WSSecurityException e) {

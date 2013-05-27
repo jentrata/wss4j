@@ -33,8 +33,14 @@ import org.apache.wss4j.dom.action.Action;
 import org.apache.wss4j.common.crypto.WSProviderConfig;
 import org.apache.wss4j.common.ext.WSSecurityException;
 import org.apache.wss4j.dom.processor.Processor;
+import org.apache.wss4j.dom.resolvers.ResolverAttachment;
+import org.apache.wss4j.dom.transform.AttachmentCiphertextTransform;
+import org.apache.wss4j.dom.transform.AttachmentCompleteSignatureTransformProvider;
+import org.apache.wss4j.dom.transform.AttachmentContentSignatureTransformProvider;
 import org.apache.wss4j.dom.validate.Validator;
 import org.apache.xml.security.stax.impl.util.IDGenerator;
+import org.apache.xml.security.transforms.Transform;
+import org.apache.xml.security.utils.resolver.ResourceResolver;
 
 /**
  * WSSConfig <p/> Carries configuration data so the WSS4J spec compliance can be
@@ -370,9 +376,32 @@ public class WSSConfig {
                     new org.apache.wss4j.dom.transform.STRTransformProvider()
                 );
 
+                Security.removeProvider("AttachmentContentSignatureTransform");
+                WSProviderConfig.appendJceProvider(
+                        "AttachmentContentSignatureTransform",
+                        new AttachmentContentSignatureTransformProvider()
+                );
+
+                Security.removeProvider("AttachmentCompleteSignatureTransform");
+                WSProviderConfig.appendJceProvider(
+                        "AttachmentCompleteSignatureTransform",
+                        new AttachmentCompleteSignatureTransformProvider()
+                );
+
                 return true;
             }
         });
+
+        try {
+            Transform.register(WSConstants.SWA_ATTACHMENT_CIPHERTEXT_TRANS,
+                    AttachmentCiphertextTransform.class);
+        } catch (Exception e) {
+            if (LOG.isDebugEnabled()) {
+                LOG.debug(e.getMessage(), e);
+            }
+        }
+
+        ResourceResolver.register(new ResolverAttachment(), false);
     }
     
     public static synchronized void init() {

@@ -18,18 +18,18 @@
  */
 package org.apache.wss4j.cxfIntegration.interceptor;
 
+import org.apache.cxf.attachment.AttachmentDataSource;
 import org.apache.cxf.binding.soap.SoapMessage;
 import org.apache.cxf.binding.soap.interceptor.AbstractSoapInterceptor;
-import org.apache.cxf.interceptor.AbstractOutDatabindingInterceptor;
-import org.apache.cxf.interceptor.AttachmentOutInterceptor;
-import org.apache.cxf.interceptor.Fault;
-import org.apache.cxf.interceptor.StaxOutInterceptor;
+import org.apache.cxf.interceptor.*;
+import org.apache.cxf.message.Attachment;
 import org.apache.cxf.message.Exchange;
 import org.apache.cxf.message.Message;
-import org.apache.cxf.message.MessageUtils;
 import org.apache.cxf.phase.AbstractPhaseInterceptor;
 import org.apache.cxf.phase.Phase;
 
+import org.apache.wss4j.common.ext.AttachmentRequestCallback;
+import org.apache.wss4j.common.ext.AttachmentResultCallback;
 import org.apache.wss4j.common.ext.WSSecurityException;
 import org.apache.wss4j.stax.WSSec;
 import org.apache.wss4j.stax.ext.OutboundWSSec;
@@ -38,11 +38,15 @@ import org.apache.wss4j.stax.ext.WSSSecurityProperties;
 import org.apache.xml.security.stax.securityEvent.SecurityEvent;
 import org.apache.xml.security.stax.securityEvent.SecurityEventListener;
 
+import javax.activation.DataHandler;
+import javax.security.auth.callback.Callback;
+import javax.security.auth.callback.CallbackHandler;
+import javax.security.auth.callback.UnsupportedCallbackException;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
+import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author $Author$
@@ -50,22 +54,23 @@ import java.util.List;
  */
 public class SecurityOutInterceptor extends AbstractSoapInterceptor {
 
-    public static final SecurityOutInterceptorEndingInterceptor ENDING = new SecurityOutInterceptorEndingInterceptor();
+    //public static final SecurityOutInterceptorEndingInterceptor ENDING = new SecurityOutInterceptorEndingInterceptor();
     public static final String OUTPUT_STREAM_HOLDER = SecurityOutInterceptor.class.getName() + ".outputstream";
     public static final String FORCE_START_DOCUMENT = "org.apache.cxf.stax.force-start-document";
-    private final OutboundWSSec outboundWSSec;
 
-    public SecurityOutInterceptor(String p, WSSSecurityProperties securityProperties) throws Exception {
+    private WSSSecurityProperties wssSecurityProperties;
+
+    public SecurityOutInterceptor(String p, WSSSecurityProperties wssSecurityProperties) throws Exception {
         super(p);
-        getBefore().add(StaxOutInterceptor.class.getName());
-
-        outboundWSSec = WSSec.getOutboundWSSec(securityProperties);
+        getAfter().add(StaxOutInterceptor.class.getName());
+        this.wssSecurityProperties = wssSecurityProperties;
     }
 
     @Override
-    public void handleMessage(SoapMessage soapMessage) throws Fault {
+    public void handleMessage(final SoapMessage soapMessage) throws Fault {
 
-        OutputStream os = soapMessage.getContent(OutputStream.class);
+        //OutputStream os = soapMessage.getContent(OutputStream.class);
+        XMLStreamWriter xwriter = soapMessage.getContent(XMLStreamWriter.class);
 
         String encoding = getEncoding(soapMessage);
 
@@ -81,7 +86,72 @@ public class SecurityOutInterceptor extends AbstractSoapInterceptor {
         XMLStreamWriter newXMLStreamWriter;
         try {
             final List<SecurityEvent> requestSecurityEvents = (List<SecurityEvent>) soapMessage.getExchange().get(SecurityEvent.class.getName() + ".in");
-            newXMLStreamWriter = outboundWSSec.processOutMessage(os, encoding, requestSecurityEvents, securityEventListener);
+
+            WSSSecurityProperties wssSecurityProperties = new WSSSecurityProperties(this.wssSecurityProperties);
+            wssSecurityProperties.setAttachmentCallbackHandler(new CallbackHandler() {
+                @Override
+                public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {
+                    for (int i = 0; i < callbacks.length; i++) {
+                        Callback callback = callbacks[i];
+                        if (callback instanceof AttachmentRequestCallback) {
+                            AttachmentRequestCallback attachmentRequestCallback = (AttachmentRequestCallback) callback;
+
+                            List<org.apache.wss4j.common.ext.Attachment> attachmentList =
+                                    new ArrayList<org.apache.wss4j.common.ext.Attachment>();
+                            attachmentRequestCallback.setAttachments(attachmentList);
+
+                            final Collection<Attachment> attachments = soapMessage.getAttachments();
+                            for (Iterator<org.apache.cxf.message.Attachment> iterator = attachments.iterator(); iterator.hasNext(); ) {
+                                org.apache.cxf.message.Attachment attachment = iterator.next();
+
+                                org.apache.wss4j.common.ext.Attachment att =
+                                        new org.apache.wss4j.common.ext.Attachment();
+                                att.setMimeType(attachment.getDataHandler().getContentType());
+                                att.setId(attachment.getId());
+                                att.setSourceStream(attachment.getDataHandler().getInputStream());
+                                //todo workaround for Content-ID header. it isn't stored as header...
+                                //todo misssing other headers too?
+                                att.addHeader("Content-ID", "<" + attachment.getId() + ">");
+                                Iterator<String> headerIterator = attachment.getHeaderNames();
+                                while (headerIterator.hasNext()) {
+                                    String next = headerIterator.next();
+                                    att.addHeader(next, attachment.getHeader(next));
+                                }
+                                attachmentList.add(att);
+
+                                iterator.remove();
+                            }
+
+                        } else if (callback instanceof AttachmentResultCallback) {
+                            AttachmentResultCallback attachmentResultCallback = (AttachmentResultCallback) callback;
+
+                            final Collection<org.apache.cxf.message.Attachment> attachments = soapMessage.getAttachments();
+
+                            org.apache.cxf.attachment.AttachmentImpl securedAttachment =
+                                    new org.apache.cxf.attachment.AttachmentImpl(
+                                            attachmentResultCallback.getAttachmentId(),
+                                            new DataHandler(
+                                                    new AttachmentDataSource(
+                                                            attachmentResultCallback.getAttachment().getMimeType(),
+                                                            attachmentResultCallback.getAttachment().getSourceStream())
+                                            )
+                                    );
+                            Map<String, String> headers = attachmentResultCallback.getAttachment().getHeaders();
+                            Iterator<Map.Entry<String, String>> iterator = headers.entrySet().iterator();
+                            while (iterator.hasNext()) {
+                                Map.Entry<String, String> next = iterator.next();
+                                securedAttachment.setHeader(next.getKey(), next.getValue());
+                            }
+                            attachments.add(securedAttachment);
+
+                        } else {
+                            throw new UnsupportedCallbackException(callback, "Unsupported callback");
+                        }
+                    }
+                }
+            });
+            final OutboundWSSec outboundWSSec = WSSec.getOutboundWSSec(wssSecurityProperties);
+            newXMLStreamWriter = outboundWSSec.processOutMessage(xwriter, encoding, requestSecurityEvents, securityEventListener);
             soapMessage.setContent(XMLStreamWriter.class, newXMLStreamWriter);
         } catch (WSSecurityException e) {
             throw new Fault(e);
@@ -91,18 +161,34 @@ public class SecurityOutInterceptor extends AbstractSoapInterceptor {
                 Boolean.TRUE);
         soapMessage.put(FORCE_START_DOCUMENT, Boolean.TRUE);
 
-        if (MessageUtils.getContextualBoolean(soapMessage, FORCE_START_DOCUMENT, false)) {
+        StaxOutEndingInterceptor staxOutEndingInterceptor = null;
+        Iterator<Interceptor<? extends Message>> interceptorIterator = soapMessage.getInterceptorChain().iterator();
+        while (interceptorIterator.hasNext()) {
+            Interceptor<? extends Message> interceptor = interceptorIterator.next();
+            if (interceptor.getClass().equals(StaxOutEndingInterceptor.class)) {
+                staxOutEndingInterceptor = (StaxOutEndingInterceptor)interceptor;
+                break;
+            }
+        }
+        if (staxOutEndingInterceptor != null) {
+            soapMessage.getInterceptorChain().remove(staxOutEndingInterceptor);
+            staxOutEndingInterceptor.getAfter().clear();
+            staxOutEndingInterceptor.getBefore().add(AttachmentOutInterceptor.AttachmentOutEndingInterceptor.class.getName());
+            soapMessage.getInterceptorChain().add(staxOutEndingInterceptor);
+        }
+
+        /*if (MessageUtils.getContextualBoolean(soapMessage, FORCE_START_DOCUMENT, false)) {
             try {
                 newXMLStreamWriter.writeStartDocument(encoding, "1.0");
             } catch (XMLStreamException e) {
                 throw new Fault(e);
             }
-            soapMessage.removeContent(OutputStream.class);
+            //soapMessage.removeContent(OutputStream.class);
             soapMessage.put(OUTPUT_STREAM_HOLDER, os);
         }
 
         // Add a final interceptor to write end elements
-        soapMessage.getInterceptorChain().add(ENDING);
+        soapMessage.getInterceptorChain().add(ENDING);*/
     }
 
     private String getEncoding(Message message) {

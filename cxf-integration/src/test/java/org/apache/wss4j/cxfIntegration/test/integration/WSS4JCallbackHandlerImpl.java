@@ -18,16 +18,17 @@
  */
 package org.apache.wss4j.cxfIntegration.test.integration;
 
+import org.apache.wss4j.common.ext.WSPasswordCallback;
+
 import javax.security.auth.callback.CallbackHandler;
 import javax.security.auth.callback.UnsupportedCallbackException;
 
-import org.apache.ws.security.WSPasswordCallback;
 
 import java.io.IOException;
 
 /**
- * @author $Author$
- * @version $Revision$ $Date$
+ * @author $Author: giger $
+ * @version $Revision: 1400458 $ $Date: 2012-10-20 16:16:13 +0200 (Sat, 20 Oct 2012) $
  */
 public class WSS4JCallbackHandlerImpl implements CallbackHandler {
 
@@ -44,13 +45,14 @@ public class WSS4JCallbackHandlerImpl implements CallbackHandler {
     public void handle(javax.security.auth.callback.Callback[] callbacks) throws IOException, UnsupportedCallbackException {
         WSPasswordCallback pc = (WSPasswordCallback) callbacks[0];
 
-//        if (pc.getUsage() == org.apache.wss4j.WSPasswordCallback.DECRYPT || pc.getUsage() == org.apache.ws.security.WSPasswordCallback.SIGNATURE) {
+//        if (pc.getUsage() == org.apache.ws.security.WSPasswordCallback.DECRYPT || pc.getUsage() == org.apache.ws.security.WSPasswordCallback.SIGNATURE) {
+        //pc.setPassword("changeit");
         pc.setPassword("default");
 /*        } else {
             throw new UnsupportedCallbackException(pc, "Unrecognized CallbackHandlerImpl");
         }
 */
-        if (pc.getUsage() == WSPasswordCallback.SECURITY_CONTEXT_TOKEN) {
+        if (pc.getUsage() == WSPasswordCallback.Usage.SECURITY_CONTEXT_TOKEN) {
             pc.setKey(secret);
         }
     }

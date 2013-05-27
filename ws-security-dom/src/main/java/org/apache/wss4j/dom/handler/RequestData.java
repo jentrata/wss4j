@@ -85,6 +85,7 @@ public class RequestData {
     private boolean useDerivedKeyForMAC = true;
     private boolean useSingleCert = true;
     private CallbackHandler callback;
+    private CallbackHandler attachmentCallbackHandler;
     private boolean enableRevocation;
     protected boolean requireSignedEncryptedDataElements;
     private ReplayCache timestampReplayCache;
@@ -118,6 +119,7 @@ public class RequestData {
         useDerivedKeyForMAC = true;
         useSingleCert = true;
         callback = null;
+        attachmentCallbackHandler = null;
         enableRevocation = false;
         timestampReplayCache = null;
         nonceReplayCache = null;
@@ -460,6 +462,14 @@ public class RequestData {
      */
     public CallbackHandler getCallbackHandler() {
         return callback;
+    }
+
+    public CallbackHandler getAttachmentCallbackHandler() {
+        return attachmentCallbackHandler;
+    }
+
+    public void setAttachmentCallbackHandler(CallbackHandler attachmentCallbackHandler) {
+        this.attachmentCallbackHandler = attachmentCallbackHandler;
     }
 
     /**

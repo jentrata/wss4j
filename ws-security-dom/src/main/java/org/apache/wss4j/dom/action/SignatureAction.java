@@ -63,6 +63,8 @@ public class SignatureAction implements Action {
             wsSign.setSecretKey(passwordCallback.getKey());
         }
 
+        wsSign.setAttachmentCallbackHandler(reqData.getAttachmentCallbackHandler());
+
         try {
             wsSign.prepare(doc, reqData.getSigCrypto(), reqData.getSecHeader());
 

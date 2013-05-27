@@ -19,10 +19,7 @@
 
 package org.apache.wss4j.dom.processor;
 
-import java.security.Key;
-import java.security.NoSuchProviderException;
-import java.security.Principal;
-import java.security.PublicKey;
+import java.security.*;
 import java.security.cert.X509Certificate;
 import java.security.spec.AlgorithmParameterSpec;
 import java.text.DateFormat;
@@ -33,9 +30,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.xml.crypto.MarshalException;
-import javax.xml.crypto.NodeSetData;
-import javax.xml.crypto.XMLStructure;
+import javax.xml.crypto.*;
 import javax.xml.crypto.dom.DOMStructure;
 import javax.xml.crypto.dsig.Manifest;
 import javax.xml.crypto.dsig.Reference;
@@ -54,6 +49,7 @@ import javax.xml.crypto.dsig.spec.HMACParameterSpec;
 
 import org.apache.wss4j.common.principal.PublicKeyPrincipalImpl;
 import org.apache.wss4j.common.principal.UsernameTokenPrincipal;
+import org.apache.wss4j.dom.transform.AttachmentContentSignatureTransform;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -357,10 +353,6 @@ public class SignatureProcessor implements Processor {
      * </ul>
      * 
      * @param elem        the XMLSignature DOM Element.
-     * @param crypto      the object that implements the access to the keystore and the
-     *                    handling of certificates.
-     * @param protectedRefs A list of (references) to the signed elements
-     * @param cb CallbackHandler instance to extract key passwords
      * @return the subject principal of the validated X509 certificate (the
      *         authenticated subject). The calling function may use this
      *         principal for further authentication or authorization.
@@ -372,7 +364,7 @@ public class SignatureProcessor implements Processor {
         PublicKey publicKey,
         byte[] secretKey,
         String signatureMethod,
-        RequestData data,
+        final RequestData data,
         WSDocInfo wsDocInfo
     ) throws WSSecurityException {
         if (LOG.isDebugEnabled()) {
@@ -391,12 +383,13 @@ public class SignatureProcessor implements Processor {
         } else {
             key = WSSecurityUtil.prepareSecretKey(signatureMethod, secretKey);
         }
-        
+
         XMLValidateContext context = new DOMValidateContext(key, elem);
         context.setProperty("javax.xml.crypto.dsig.cacheReference", Boolean.TRUE);
         context.setProperty("org.apache.jcp.xml.dsig.secureValidation", Boolean.TRUE);
         context.setProperty(STRTransform.TRANSFORM_WS_DOC_INFO, wsDocInfo);
-        
+        context.setProperty(AttachmentContentSignatureTransform.ATTACHMENT_CALLBACKHANDLER, data.getAttachmentCallbackHandler());
+
         try {
             XMLSignature xmlSignature = signatureFactory.unmarshalXMLSignature(context);
             checkBSPCompliance(xmlSignature, data.getBSPEnforcer());
@@ -516,7 +509,6 @@ public class SignatureProcessor implements Processor {
      * @param doc The owning document
      * @param signedInfo The SignedInfo object
      * @param requestData A RequestData instance
-     * @param protectedRefs A list of protected references
      * @return A list of protected references
      * @throws WSSecurityException
      */
@@ -536,10 +528,11 @@ public class SignatureProcessor implements Processor {
                 Element se = dereferenceSTR(doc, siRef, requestData, wsDocInfo);
                 // If an STR Transform is not used then just find the cached element
                 if (se == null) {
-                    NodeSetData data = (NodeSetData)siRef.getDereferencedData();
-                    if (data != null) {
+                    Data dereferencedData = siRef.getDereferencedData();
+                    if (dereferencedData instanceof NodeSetData) {
+                        NodeSetData data = (NodeSetData)dereferencedData;
                         java.util.Iterator<?> iter = data.iterator();
-                        
+
                         while (iter.hasNext()) {
                             Node n = (Node)iter.next();
                             if (n instanceof Element) {
@@ -547,6 +540,8 @@ public class SignatureProcessor implements Processor {
                                 break;
                             }
                         }
+                    } else if (dereferencedData instanceof OctetStreamData) {
+                        se = doc.createElementNS("http://docs.oasis-open.org/wss/oasis-wss-SwAProfile-1.1", "attachment");
                     }
                 }
                 if (se == null) {

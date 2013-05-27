@@ -23,19 +23,21 @@ import org.apache.cxf.endpoint.Client;
 import org.apache.cxf.frontend.ClientProxy;
 import org.apache.cxf.message.Message;
 import org.apache.cxf.staxutils.StaxUtils;
-import org.apache.cxf.ws.security.wss4j.WSS4JInInterceptor;
-import org.apache.cxf.ws.security.wss4j.WSS4JOutInterceptor;
 import org.apache.hello_world_soap_http.Greeter;
 import org.apache.hello_world_soap_http.SOAPService;
-import org.apache.ws.security.handler.WSHandlerConstants;
+import org.apache.hello_world_soap_http.types.GreetMeType;
+import org.apache.wss4j.dom.handler.WSHandlerConstants;
 import org.apache.xml.security.stax.impl.util.KeyValue;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
+import org.apache.wss4j.cxfIntegration.interceptor.WSS4JInInterceptor;
+import org.apache.wss4j.cxfIntegration.interceptor.WSS4JOutInterceptor;
 import org.testng.annotations.AfterClass;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import javax.xml.stream.XMLInputFactory;
+import javax.xml.ws.Holder;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
@@ -45,8 +47,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
- * @author $Author$
- * @version $Revision$ $Date$
+ * @author $Author: giger $
+ * @version $Revision: 1400458 $ $Date: 2012-10-20 16:16:13 +0200 (Sat, 20 Oct 2012) $
  */
 public class CXFIntegrationTest {
 
@@ -74,7 +76,16 @@ public class CXFIntegrationTest {
             WSS4JOutInterceptor wss4JOutInterceptor = new WSS4JOutInterceptor();
             wss4JOutInterceptor.setProperty(WSHandlerConstants.ACTION, "Timestamp Signature Encrypt");
             wss4JOutInterceptor.setProperty(WSHandlerConstants.USER, "transmitter");
+            wss4JOutInterceptor.setProperty(
+                    WSHandlerConstants.SIGNATURE_PARTS,
+                    "{Element}{http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd}Timestamp;" +
+                            "{Element}{http://schemas.xmlsoap.org/soap/envelope/}Body;" +
+                            "{Element}cid:Attachments;");
             wss4JOutInterceptor.setProperty(WSHandlerConstants.ENCRYPTION_USER, "receiver");
+            wss4JOutInterceptor.setProperty(
+                    WSHandlerConstants.ENCRYPTION_PARTS,
+                    "{Content}{http://schemas.xmlsoap.org/soap/envelope/}Body;" +
+                            "{Element}cid:Attachments;");
             wss4JOutInterceptor.setProperty(WSHandlerConstants.PW_CALLBACK_CLASS, WSS4JCallbackHandlerImpl.class.getName());
             wss4JOutInterceptor.setProperty(WSHandlerConstants.SIG_PROP_FILE, "transmitter-crypto.properties");
             wss4JOutInterceptor.setProperty(WSHandlerConstants.ENC_PROP_FILE, "transmitter-crypto.properties");
@@ -85,11 +96,18 @@ public class CXFIntegrationTest {
             WSS4JInInterceptor wss4JInInterceptor = new WSS4JInInterceptor();
             wss4JInInterceptor.setProperty(WSHandlerConstants.ACTION, "Timestamp Signature Encrypt");
             wss4JInInterceptor.setProperty(WSHandlerConstants.PW_CALLBACK_CLASS, WSS4JCallbackHandlerImpl.class.getName());
-            wss4JInInterceptor.setProperty(WSHandlerConstants.SIG_PROP_FILE, "transmitter-crypto.properties");
+            wss4JInInterceptor.setProperty(WSHandlerConstants.SIG_VER_PROP_FILE, "transmitter-crypto.properties");
             wss4JInInterceptor.setProperty(WSHandlerConstants.DEC_PROP_FILE, "transmitter-crypto.properties");
             client.getInInterceptors().add(wss4JInInterceptor);
 
-            greeterStream.greetMe("Cold start");
+            GreetMeType greetMeType = new GreetMeType();
+            greetMeType.setRequestType("Cold start");
+
+            Holder<byte[]> byteHolder = new Holder<byte[]>();
+            byteHolder.value = "Attachment".getBytes();
+            greeterStream.greetMe(greetMeType, byteHolder);
+
+            System.out.println("Client received attachment: " + new String(byteHolder.value));
         }
 
         {
@@ -99,24 +117,39 @@ public class CXFIntegrationTest {
             WSS4JOutInterceptor wss4JOutInterceptor = new WSS4JOutInterceptor();
             wss4JOutInterceptor.setProperty(WSHandlerConstants.ACTION, "Timestamp Signature Encrypt");
             wss4JOutInterceptor.setProperty(WSHandlerConstants.USER, "transmitter");
+            wss4JOutInterceptor.setProperty(
+                    WSHandlerConstants.SIGNATURE_PARTS,
+                    "{Element}{http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd}Timestamp;" +
+                            "{Element}{http://schemas.xmlsoap.org/soap/envelope/}Body;" +
+                            "{Element}cid:Attachments;");
             wss4JOutInterceptor.setProperty(WSHandlerConstants.ENCRYPTION_USER, "receiver");
+            wss4JOutInterceptor.setProperty(
+                    WSHandlerConstants.ENCRYPTION_PARTS,
+                    "{Content}{http://schemas.xmlsoap.org/soap/envelope/}Body;" +
+                            "{Element}cid:Attachments;");
             wss4JOutInterceptor.setProperty(WSHandlerConstants.PW_CALLBACK_CLASS, WSS4JCallbackHandlerImpl.class.getName());
             wss4JOutInterceptor.setProperty(WSHandlerConstants.SIG_PROP_FILE, "transmitter-crypto.properties");
             wss4JOutInterceptor.setProperty(WSHandlerConstants.ENC_PROP_FILE, "transmitter-crypto.properties");
             wss4JOutInterceptor.setProperty(WSHandlerConstants.ENC_SYM_ALGO, "http://www.w3.org/2001/04/xmlenc#aes256-cbc");
-            wss4JOutInterceptor.setProperty(WSHandlerConstants.ENC_KEY_TRANSPORT, "http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p");
             client.getOutInterceptors().add(wss4JOutInterceptor);
 
             WSS4JInInterceptor wss4JInInterceptor = new WSS4JInInterceptor();
             wss4JInInterceptor.setProperty(WSHandlerConstants.ACTION, "Timestamp Signature Encrypt");
             wss4JInInterceptor.setProperty(WSHandlerConstants.PW_CALLBACK_CLASS, WSS4JCallbackHandlerImpl.class.getName());
-            wss4JInInterceptor.setProperty(WSHandlerConstants.SIG_PROP_FILE, "transmitter-crypto.properties");
+            wss4JInInterceptor.setProperty(WSHandlerConstants.SIG_VER_PROP_FILE, "transmitter-crypto.properties");
             wss4JInInterceptor.setProperty(WSHandlerConstants.DEC_PROP_FILE, "transmitter-crypto.properties");
             client.getInInterceptors().add(wss4JInInterceptor);
 
             client.getRequestContext().put(Message.ENDPOINT_ADDRESS, "http://localhost:9001/GreeterServiceWSS4J");
 
-            greeterDOM.greetMe("Cold start");
+            GreetMeType greetMeType = new GreetMeType();
+            greetMeType.setRequestType("Cold start");
+
+            Holder<byte[]> byteHolder = new Holder<byte[]>();
+            byteHolder.value = "Attachment".getBytes();
+            greeterDOM.greetMe(greetMeType, byteHolder);
+
+            System.out.println("Client received attachment: " + new String(byteHolder.value));
         }
     }
 
@@ -130,7 +163,7 @@ public class CXFIntegrationTest {
     public Object[][] payload() {
         Object[][] objects = new Object[10][1];
         for (int i = 0; i < objects.length; i++) {
-            objects[i][0] = RandomStringUtils.randomAlphanumeric((int)Math.pow((i + 1), 6));
+            objects[i][0] = RandomStringUtils.randomAlphanumeric((int) Math.pow((i + 1), 5));
         }
         return objects;
     }
@@ -197,7 +230,12 @@ public class CXFIntegrationTest {
 
         @Override
         public Object call() throws Exception {
-            return greeter.greetMe(payload);
+            GreetMeType greetMeType = new GreetMeType();
+            greetMeType.setRequestType(payload);
+
+            Holder<byte[]> byteHolder = new Holder<byte[]>();
+            byteHolder.value = payload.getBytes();
+            return greeter.greetMe(greetMeType, byteHolder);
         }
     }
 }

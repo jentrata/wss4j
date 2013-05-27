@@ -92,6 +92,67 @@
         </property>
     </bean>
 
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetObject" ref="outSecurityProperties"/>
+        <property name="targetMethod" value="addSignaturePart"/>
+        <property name="arguments">
+            <bean class="org.apache.xml.security.stax.ext.SecurePart">
+                <constructor-arg>
+                    <util:constant static-field="org.apache.wss4j.stax.ext.WSSConstants.TAG_soap11_Body"/>
+                </constructor-arg>
+                <constructor-arg value="Content"/>
+            </bean>
+        </property>
+    </bean>
+
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetObject" ref="outSecurityProperties"/>
+        <property name="targetMethod" value="addSignaturePart"/>
+        <property name="arguments">
+            <bean class="org.apache.xml.security.stax.ext.SecurePart">
+                <constructor-arg>
+                    <util:constant static-field="org.apache.wss4j.stax.ext.WSSConstants.TAG_wsu_Timestamp"/>
+                </constructor-arg>
+                <constructor-arg value="Element"/>
+            </bean>
+        </property>
+    </bean>
+
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetObject" ref="outSecurityProperties"/>
+        <property name="targetMethod" value="addSignaturePart"/>
+        <property name="arguments">
+            <bean class="org.apache.xml.security.stax.ext.SecurePart">
+                <constructor-arg type="java.lang.String" value="cid:Attachments"/>
+                <constructor-arg value="Element"/>
+            </bean>
+        </property>
+    </bean>
+
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetObject" ref="outSecurityProperties"/>
+        <property name="targetMethod" value="addEncryptionPart"/>
+        <property name="arguments">
+            <bean class="org.apache.xml.security.stax.ext.SecurePart">
+                <constructor-arg>
+                    <util:constant static-field="org.apache.wss4j.stax.ext.WSSConstants.TAG_soap11_Body"/>
+                </constructor-arg>
+                <constructor-arg value="Content"/>
+            </bean>
+        </property>
+    </bean>
+
+    <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetObject" ref="outSecurityProperties"/>
+        <property name="targetMethod" value="addEncryptionPart"/>
+        <property name="arguments">
+            <bean class="org.apache.xml.security.stax.ext.SecurePart">
+                <constructor-arg type="java.lang.String" value="cid:Attachments"/>
+                <constructor-arg value="Element"/>
+            </bean>
+        </property>
+    </bean>
+
     <!-- set encryption Keystore in securityProperties -->
     <!--
     <bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
@@ -144,18 +205,18 @@
         </jaxws:outInterceptors>
     </jaxws:endpoint>
 
-    <bean name="wss4jInInterceptor" class="org.apache.cxf.ws.security.wss4j.WSS4JInInterceptor">
+    <bean name="wss4jInInterceptor" class="org.apache.wss4j.cxfIntegration.interceptor.WSS4JInInterceptor">
         <property name="properties">
             <map>
                 <entry key="action" value="Timestamp Signature Encrypt"/>
                 <entry key="passwordCallbackRef" value-ref="passwordCallbackHandlerWSS4J"/>
                 <entry key="decryptionPropFile" value="receiver-crypto.properties"/>
-                <entry key="signaturePropFile" value="receiver-crypto.properties"/>
+                <entry key="signatureVerificationPropFile" value="receiver-crypto.properties"/>
             </map>
         </property>
     </bean>
 
-    <bean name="wss4jOutInterceptor" class="org.apache.cxf.ws.security.wss4j.WSS4JOutInterceptor">
+    <bean name="wss4jOutInterceptor" class="org.apache.wss4j.cxfIntegration.interceptor.WSS4JOutInterceptor">
         <property name="properties">
             <map>
                 <entry key="action" value="Timestamp Signature Encrypt"/>
@@ -166,6 +227,8 @@
                 <entry key="encryptionUser" value="transmitter"/>
                 <entry key="encryptionSymAlgorithm" value="http://www.w3.org/2001/04/xmlenc#aes256-cbc"/>
                 <entry key="encryptionKeyTransportAlgorithm" value="http://www.w3.org/2001/04/xmlenc#rsa-oaep-mgf1p"/>
+                <entry key="signatureParts" value="{Element}{http://docs.oasis-open.org/wss/2004/01/oasis-200401-wss-wssecurity-utility-1.0.xsd}Timestamp;{Element}{http://schemas.xmlsoap.org/soap/envelope/}Body;{Element}cid:Attachments;"/>
+                <entry key="encryptionParts" value="{Content}{http://schemas.xmlsoap.org/soap/envelope/}Body;{Element}cid:Attachments;"/>
             </map>
         </property>
     </bean>

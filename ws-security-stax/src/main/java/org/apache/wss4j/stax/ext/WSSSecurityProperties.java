@@ -103,6 +103,8 @@ public class WSSSecurityProperties extends XMLSecurityProperties {
     private ReplayCache nonceReplayCache;
     private boolean validateSamlSubjectConfirmation = true;
 
+    private CallbackHandler attachmentCallbackHandler;
+
     public WSSSecurityProperties() {
         super();
         setAddExcC14NInclusivePrefixes(true);
@@ -150,6 +152,7 @@ public class WSSSecurityProperties extends XMLSecurityProperties {
         this.addUsernameTokenNonce = wssSecurityProperties.addUsernameTokenNonce;
         this.addUsernameTokenCreated = wssSecurityProperties.addUsernameTokenCreated;
         this.validateSamlSubjectConfirmation = wssSecurityProperties.validateSamlSubjectConfirmation;
+        this.attachmentCallbackHandler = wssSecurityProperties.attachmentCallbackHandler;
     }
 
     /**
@@ -690,7 +693,7 @@ public class WSSSecurityProperties extends XMLSecurityProperties {
 
     public void setUtFutureTTL(Integer utFutureTTL) {
         this.utFutureTTL = utFutureTTL;
-    }
+    }    
     
     /**
      * Set the replay cache for Timestamps
@@ -809,5 +812,12 @@ public class WSSSecurityProperties extends XMLSecurityProperties {
     public void setMustUnderstand(boolean mustUnderstand) {
         this.mustUnderstand = mustUnderstand;
     }
-    
+
+    public CallbackHandler getAttachmentCallbackHandler() {
+        return attachmentCallbackHandler;
+    }
+
+    public void setAttachmentCallbackHandler(CallbackHandler attachmentCallbackHandler) {
+        this.attachmentCallbackHandler = attachmentCallbackHandler;
+    }
 }

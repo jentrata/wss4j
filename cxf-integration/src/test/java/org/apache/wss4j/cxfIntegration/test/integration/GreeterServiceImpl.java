@@ -20,15 +20,18 @@ package org.apache.wss4j.cxfIntegration.test.integration;
 
 import org.apache.hello_world_soap_http.Greeter;
 import org.apache.hello_world_soap_http.PingMeFault;
+import org.apache.hello_world_soap_http.types.GreetMeResponseType;
+import org.apache.hello_world_soap_http.types.GreetMeType;
 
 import javax.annotation.Resource;
 import javax.jws.WebParam;
 import javax.jws.WebService;
+import javax.xml.ws.Holder;
 import javax.xml.ws.WebServiceContext;
 
 /**
- * @author $Author$
- * @version $Revision$ $Date$
+ * @author $Author: giger $
+ * @version $Revision: 1400458 $ $Date: 2012-10-20 16:16:13 +0200 (Sat, 20 Oct 2012) $
  */
 @WebService(targetNamespace = "http://apache.org/hello_world_soap_http", serviceName = "SOAPService", endpointInterface = "org.apache.hello_world_soap_http.Greeter")
 public class GreeterServiceImpl implements Greeter {
@@ -50,7 +53,17 @@ public class GreeterServiceImpl implements Greeter {
     }
 
     @Override
-    public String greetMe(@WebParam(name = "requestType", targetNamespace = "http://apache.org/hello_world_soap_http/types") String requestType) {
-        return requestType;
+    public GreetMeResponseType greetMe(
+            @WebParam(partName = "greetMe", name = "greetMe",
+                    targetNamespace = "http://apache.org/hello_world_soap_http/types") GreetMeType greetMe,
+            @WebParam(partName = "attachment", mode = WebParam.Mode.INOUT, name = "attachment",
+                    targetNamespace = "") Holder<byte[]> attachment) {
+
+        //System.out.println("Server received attachment: " + new String(attachment.value));
+
+        attachment.value = "Response Attachment".getBytes();
+        GreetMeResponseType greetMeResponseType = new GreetMeResponseType();
+        greetMeResponseType.setResponseType(greetMe.getRequestType());
+        return greetMeResponseType;
     }
 }

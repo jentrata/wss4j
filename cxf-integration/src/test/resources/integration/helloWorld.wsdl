@@ -2,6 +2,7 @@
 <wsdl:definitions name="HelloWorld" targetNamespace="http://apache.org/hello_world_soap_http"
     xmlns="http://schemas.xmlsoap.org/wsdl/"
     xmlns:soap="http://schemas.xmlsoap.org/wsdl/soap/"
+    xmlns:mime="http://schemas.xmlsoap.org/wsdl/mime/"
     xmlns:tns="http://apache.org/hello_world_soap_http"
     xmlns:x1="http://apache.org/hello_world_soap_http/types"
     xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/"
@@ -27,20 +28,18 @@
                     </sequence>
                 </complexType>
             </element>
-            <element name="greetMe">
-                <complexType>
-                    <sequence>
-                        <element name="requestType" type="tns:MyStringType"/>
-                    </sequence>
-                </complexType>
-            </element>
-            <element name="greetMeResponse">
-                <complexType>
-                    <sequence>
-                        <element name="responseType" type="string"/>
-                    </sequence>
-                </complexType>
-            </element>
+            <element name="greetMe" type="tns:greetMeType"/>
+            <complexType name="greetMeType">
+                <sequence>
+                    <element name="requestType" type="tns:MyStringType"/>
+                </sequence>
+            </complexType>
+            <element name="greetMeResponse" type="tns:greetMeResponseType"/>
+            <complexType name="greetMeResponseType">
+                <sequence>
+                    <element name="responseType" type="tns:MyStringType"/>
+                </sequence>
+            </complexType>
             <element name="greetMeOneWay">
                 <complexType>
                     <sequence>
@@ -71,10 +70,12 @@
         <wsdl:part element="x1:sayHiResponse" name="out"/>
     </wsdl:message>
     <wsdl:message name="greetMeRequest">
-        <wsdl:part element="x1:greetMe" name="in"/>
+        <wsdl:part name="greetMe" element="x1:greetMe"/>
+        <wsdl:part name="attachment" type="xsd:base64Binary"/>
     </wsdl:message>
     <wsdl:message name="greetMeResponse">
-        <wsdl:part element="x1:greetMeResponse" name="out"/>
+        <wsdl:part name="greetMeResponse" element="x1:greetMeResponse"/>
+        <wsdl:part name="attachment" type="xsd:base64Binary"/>
     </wsdl:message>
     <wsdl:message name="greetMeOneWayRequest">
         <wsdl:part element="x1:greetMeOneWay" name="in"/>
@@ -126,10 +127,24 @@
         <wsdl:operation name="greetMe">
             <soap:operation soapAction="" style="document"/>
             <wsdl:input name="greetMeRequest">
-                <soap:body use="literal"/>
+                <mime:multipartRelated>
+                    <mime:part>
+                        <soap:body use="literal" parts="greetMe"/>
+                    </mime:part>
+                    <mime:part>
+                        <mime:content part="attachment" type="image/jpeg"/>
+                    </mime:part>
+                </mime:multipartRelated>
             </wsdl:input>
             <wsdl:output name="greetMeResponse">
-                <soap:body use="literal"/>
+                <mime:multipartRelated>
+                    <mime:part>
+                        <soap:body use="literal" parts="greetMeResponse"/>
+                    </mime:part>
+                    <mime:part>
+                        <mime:content part="attachment" type="image/jpeg"/>
+                    </mime:part>
+                </mime:multipartRelated>
             </wsdl:output>
         </wsdl:operation>
 
