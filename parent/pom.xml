@@ -43,7 +43,7 @@
         <woodstox.core.asl.version>4.2.0</woodstox.core.asl.version>
         <xalan.version>2.7.1</xalan.version>
         <xerces.version>2.9.1</xerces.version>
-        <xmlsec.version>2.0.0-SNAPSHOT</xmlsec.version>
+        <xmlsec.version>2.0.0-jentrata-SNAPSHOT</xmlsec.version>
         <opensaml.version>2.5.3</opensaml.version>
         <geronimo.javamail.version>1.7.1</geronimo.javamail.version>
         <testng.version>6.5.2</testng.version>

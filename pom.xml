@@ -320,6 +320,31 @@
                 <pmd.skip>true</pmd.skip>
             </properties>
         </profile>
+        <profile>
+            <id>jentrata</id>
+            <repositories>
+                <repository>
+                    <id>jentrata</id>
+                    <snapshots>
+                        <enabled>false</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>true</enabled>
+                    </releases>
+                    <url>http://repository-jentrata.forge.cloudbees.com/release/</url>
+                </repository>
+                <repository>
+                    <id>jentrata-snapshots</id>
+                    <snapshots>
+                        <enabled>true</enabled>
+                    </snapshots>
+                    <releases>
+                        <enabled>false</enabled>
+                    </releases>
+                    <url>http://repository-jentrata.forge.cloudbees.com/snapshot/</url>
+                </repository>
+            </repositories>
+        </profile>
     </profiles>
 
     <reporting>
