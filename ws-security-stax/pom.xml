@@ -26,11 +26,11 @@
         <groupId>org.apache.wss4j</groupId>
         <artifactId>wss4j-parent</artifactId>
         <relativePath>../parent/pom.xml</relativePath>
-        <version>2.0-jentrata-SNAPSHOT</version>
+        <version>2.0-jentrata-02</version>
     </parent>
     <groupId>org.apache.wss4j</groupId>
     <artifactId>wss4j-ws-security-stax</artifactId>
-    <version>2.0-jentrata-SNAPSHOT</version>
+    <version>2.0-jentrata-02</version>
     <name>Apache WSS4J Streaming WS-Security</name>
 
     <dependencies>
