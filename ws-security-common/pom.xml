@@ -95,11 +95,12 @@
                               net.sf.ehcache.*;resolution:=optional;version="2.5, 3.0.0)",
                               *;resolution:=optional
                         </Import-Package>
-                        <DynamicImport-Package>
-                              org.bouncycastle.jce.provider,
-                              org.apache.wss4j.components.crypto,
-                              org.apache.wss4j.saml
-                        </DynamicImport-Package>
+                        <DynamicImport-Package>*</DynamicImport-Package>
+                        <!--<DynamicImport-Package>-->
+                              <!--org.bouncycastle.jce.provider,-->
+                              <!--org.apache.wss4j.components.crypto,-->
+                              <!--org.apache.wss4j.saml-->
+                        <!--</DynamicImport-Package>-->
                     </instructions>
                 </configuration>
             </plugin>
